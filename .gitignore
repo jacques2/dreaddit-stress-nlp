@@ -1,7 +1,39 @@
-*.pyc
+# Python
 __pycache__/
-.env
-*.ipynb_checkpoints
-v.env
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data (do not commit datasets)
+data/raw/
+data/processed/
+data/interim/
+
+# Logs & experiment tracking
+logs/
+runs/
+wandb/
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
 .idea/
+
+# Models / checkpoints
+*.pt
+*.bin
+*.ckpt
+
+# Misc
+*.log

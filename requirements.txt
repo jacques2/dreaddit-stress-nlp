@@ -1,0 +1,22 @@
+# Core
+numpy
+pandas
+scikit-learn
+
+# NLP & Transformers
+torch
+transformers
+datasets
+
+# Explainability
+shap
+captum
+
+# Visualization
+matplotlib
+seaborn
+
+# Utilities
+tqdm
+jupyter
+p
