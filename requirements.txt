@@ -19,3 +19,4 @@ matplotlib
 tqdm
 jupyter
 ipykernel
+kagglehub
