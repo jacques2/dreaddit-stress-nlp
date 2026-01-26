@@ -1,2 +1,3 @@
-# dreaddit-stress-nlp
-Stress detection in social media (Dreaddit): fine-tuning Transformers, evaluation, and explainability.
+# Dreaddit Stress NLP
+
+This repository contains tools and scripts for analyzing and understanding stress through natural language processing.
