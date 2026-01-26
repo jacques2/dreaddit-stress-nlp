@@ -3,20 +3,19 @@ numpy
 pandas
 scikit-learn
 
-# NLP & Transformers
-torch
+# NLP & Transformers (TF backend)
+tensorflow
 transformers
 datasets
 
-# Explainability
+# Explainability (TF-friendly)
 shap
-captum
+tf-keras-vis
 
 # Visualization
 matplotlib
-seaborn
 
 # Utilities
 tqdm
 jupyter
-p
+ipykernel
