@@ -8,11 +8,15 @@ This section summarizes the main findings obtained so far.
 - Text length alone shows limited discriminative power, with substantial overlap between classes.
 ![Text Length By Label](./text_length_by_label.png)
 - Stress-related posts exhibit a higher number of long outliers, often corresponding to extended personal narratives.
-![Pleasantness By Label Distribution](./pleasantness_by_label.png)
 - Affective features such as sentiment and lexical pleasantness show clearer differences between classes.
+![Pleasantness By Label Distribution](./pleasantness_by_label.png)
 
-## Baseline (in progress)
-- An interpretable baseline using affective and linguistic features is currently being implemented.
-- Preliminary results suggest that affective features provide stronger signals than surface-level statistics.
+## Baseline Model
+- An interpretable logistic regression baseline was trained using affective, psycholinguistic, and readability features.
+- The most influential signals for stress prediction include first-person singular pronouns, negative emotional language, and text length.
+- Features associated with positive emotional tone, social references, and higher readability reduce the likelihood of stress predictions.
 
-Figures referenced below illustrate key observations from the EDA.
+## Error Analysis
+- High-confidence errors mainly correspond to emotionally expressive but non-stress posts.
+- These cases suggest that feature-based models tend to conflate personal narrative style with psychological stress.
+- This limitation motivates the adoption of semantic models capable of capturing contextual meaning beyond surface-level affective cues.
