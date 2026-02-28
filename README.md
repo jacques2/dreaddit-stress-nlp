@@ -15,10 +15,10 @@ in sensitive domains.
 
 ## Methods
 The project includes:
-- Traditional baselines (e.g., TF-IDF + Logistic Regression)
-- Fine-tuned Transformer models (e.g., BERT / RoBERTa)
-- Evaluation using appropriate classification metrics
-- Explainability techniques to interpret model predictions
+- Interpretable baseline with handcrafted linguistic/affective features + Logistic Regression
+- Fine-tuned Transformer model (DistilBERT)
+- Evaluation with classification and ranking metrics
+- Simple feature-based explainability for baseline coefficients
 
 ## Evaluation
 Models are evaluated using:
@@ -49,10 +49,19 @@ for clinical or real-world decision-making.
 1. Install dependencies:
    ```bash
    pip install -r requirements.txt
+   ```
 
-2. Download and place the dataset as described in data/README.md
+2. Prepare data (see `data/README.md`):
+- Option A (recommended): place `data/raw/dreaddit.csv` locally
+- Option B: if the file is missing, scripts/notebooks can download via `kagglehub`
 
-3. Run experiments using notebooks or Python scripts in src/
+3. Run baseline training (reproducible split + validation-based threshold):
+   ```bash
+   python src/train.py --seed 42
+   ```
+   Outputs are saved in `reports/results/`.
+
+4. Optionally run/inspect notebooks in `notebooks/`.
 
 ## Status
 

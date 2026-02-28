@@ -1,0 +1,14 @@
+{
+  "accuracy": 0.7622377622377622,
+  "f1_macro": 0.7616666666666667,
+  "precision_binary": 0.8225806451612904,
+  "recall_binary": 0.6891891891891891,
+  "f1_binary": 0.75,
+  "roc_auc": 0.8204073638856249,
+  "average_precision": 0.7875776879248221,
+  "selected_threshold": 0.573469387755102,
+  "val_macro_f1_at_selected_threshold": 0.7916264711557013,
+  "n_train": 500,
+  "n_val": 72,
+  "n_test": 143
+}

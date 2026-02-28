@@ -1,23 +1,17 @@
 # Dataset Instructions
 
-This project uses the **Dreaddit** dataset, which contains Reddit posts
-annotated for stress-related content.
+This project uses the **Dreaddit stress dataset** (public Reddit posts with stress labels).
 
-## How to obtain the dataset
-1. Download the dataset from the official source:
-   https://github.com/tommasoc80/Dreaddit
-2. Follow the dataset license and usage guidelines provided by the authors.
+## Recommended setup
+Place the CSV file here:
 
-## Expected directory structure
-After downloading, organize the data as follows:
-data/
-├── raw/
-│ └── dreaddit.csv
+`data/raw/dreaddit.csv`
 
-
-The `raw/`, `interim/`, and `processed/` folders are ignored by Git
-and should not be committed.
+## Alternative setup
+If `data/raw/dreaddit.csv` is missing, notebooks/scripts can download the dataset
+from KaggleHub (`monishakant/dataset-for-stress-analysis-in-social-media`).
 
 ## Notes
-- Do not upload or commit raw data files to this repository.
-- All data used in this project is publicly available and anonymized.
+- Do not commit raw dataset files to Git.
+- Keep only small metadata/split files in `data/` if needed.
+- Data is public/anonymized, but still sensitive: handle outputs responsibly.
