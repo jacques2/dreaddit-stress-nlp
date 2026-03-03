@@ -35,7 +35,7 @@ Thumbs.db
 *.pt
 *.bin
 *.ckpt
-notebooks/results/transformer_distilbert/
+results/transformer/distilbert
 
 # Misc
 *.log

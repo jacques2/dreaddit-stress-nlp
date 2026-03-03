@@ -40,6 +40,37 @@ The ROC-AUC indicates strong ranking capability, while the Precision–Recall cu
 
 The modest improvement over the default threshold suggests that logistic regression produces reasonably calibrated probability estimates.
 
+## Transformer Model Performance (DistilBERT)
+
+The fine-tuned Transformer was evaluated on the same held-out test split (`n_test = 143`).
+
+### Hold-out Test Performance
+- Accuracy: **0.762**
+- Macro F1-score: **0.761**
+- ROC-AUC: **0.829**
+- Average Precision (PR-AUC / AP): **0.841**
+
+### Classification Report
+```text
+              precision    recall  f1-score   support
+
+           0      0.778     0.710     0.742        69
+           1      0.750     0.811     0.779        74
+
+    accuracy                          0.762       143
+   macro avg      0.764     0.760     0.761       143
+weighted avg      0.763     0.762     0.761       143
+```
+
+### Confusion Matrix
+![Transformer Confusion Matrix](../results/transformer/confusion_matrix.png)
+
+### ROC Curve
+![Transformer ROC Curve](../results/transformer/roc_curve.png)
+
+### Precision-Recall Curve
+![Transformer PR Curve](../results/transformer/pr_curve.png)
+
 ---
 
 ## Feature Interpretation
