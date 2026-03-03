@@ -4,12 +4,12 @@ This section summarizes the main findings obtained so far.
 
 ## Exploratory Analysis
 - The dataset is nearly balanced between stress and non-stress posts.
-![Label Distribution](./label_distribution.png)
+![Label Distribution](../results/eda/label_distribution.png)
 - Text length alone shows limited discriminative power, with substantial overlap between classes.
-![Text Length By Label](./text_length_by_label.png)
+![Text Length By Label](../results/eda/text_length_by_label.png)
 - Stress-related posts exhibit a higher number of long outliers, often corresponding to extended personal narratives.
 - Affective features such as sentiment and lexical pleasantness show clearer differences between classes.
-![Pleasantness By Label Distribution](./pleasantness_by_label.png)
+![Pleasantness By Label Distribution](../results/eda/pleasantness_by_label.png)
 These findings motivate the use of interpretable affective baselines and contextual NLP models.
 
 ## Baseline Model Performance
