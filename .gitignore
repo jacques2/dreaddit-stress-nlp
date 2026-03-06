@@ -43,3 +43,4 @@ results/transformer/distilbert
 # Quarto / presentation builds
 presentation.html
 presentation_files/
+.cache/deno

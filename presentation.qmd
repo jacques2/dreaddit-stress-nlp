@@ -1,247 +1,363 @@
 ---
 title: "Stress Detection from Social Media"
-subtitle: "AI in Industry Project"
+subtitle: "AI in Industry Project – Technical Presentation"
 author: "Jacopo"
 format:
   revealjs:
     theme: simple
     slide-number: true
-    toc: false
     transition: fade
+    toc: false
     smaller: true
 execute:
   echo: false
+  warning: false
+  message: false
 ---
 
-## Project Goal
+## 1. Objective
 
-I study stress detection from Reddit posts using two complementary approaches:
+**Task**: binary classification (`stress` vs `non-stress`) from Reddit posts.  
+**Goal**: compare two modeling strategies and explain predictions.
 
-- an interpretable feature-based baseline
-- a contextual Transformer model
+- Interpretable baseline (handcrafted features + Logistic Regression)
+- Contextual model (DistilBERT fine-tuning)
+- Explainability stack (coefficients + SHAP + Integrated Gradients)
 
-The goal is to compare predictive performance and explainability.
+## 2. Project Structure Used in This Presentation
 
-## Dataset
+This presentation is based on the notebooks:
 
-I use the Dreaddit dataset, a benchmark for stress detection from social media posts.
+- `notebooks/01_eda.ipynb.ipynb`
+- `notebooks/02_train_baseline.ipynb`
+- `notebooks/03_train_transformer.ipynb`
+- `notebooks/04_explainability.ipynb`
 
-Main properties:
+and on generated outputs in:
 
-- binary classification: stress vs non-stress
-- short and medium-length Reddit posts
-- nearly balanced label distribution
+- `results/eda/`
+- `results/baseline/`
+- `results/transformer/`
+- `results/explainability/`
 
-## Exploratory Data Analysis
+## 3. Data Loading and Shared Split Logic
 
-My exploratory analysis shows that:
+From `notebooks/03_train_transformer.ipynb`:
 
-- the dataset is approximately balanced
-- text length alone is not sufficient to separate the two classes
-- affective and psycholinguistic signals are more informative
+```python
+train_idx_path = "../data/train_idx.npy"
+test_idx_path = "../data/test_idx.npy"
 
-```{python}
-from IPython.display import Image, display
-from pathlib import Path
-
-root = Path(".")
-eda_plot = root / "results" / "eda" / "label_distribution.png"
-if eda_plot.exists():
-    display(Image(filename=str(eda_plot)))
-```
-
-## Baseline Model
-
-My baseline model is a logistic regression classifier trained on:
-
-- LIWC-inspired lexical features
-- sentiment and affective indicators
-- readability and stylistic features
-
-This baseline is fully interpretable and provides a strong reference point.
-
-## Baseline Results
-
-Main baseline results:
-
-- Accuracy: about 0.75
-- Macro F1: about 0.75
-- ROC-AUC: about 0.81
-- Average Precision: about 0.77
-
-These results show that handcrafted affective features already capture a substantial amount of stress-related signal.
-
-## Baseline Explainability
-
-The most important positive features for stress prediction include:
-
-- first-person singular pronouns
-- negative emotional language
-- anxiety-related lexical indicators
-- longer and more detailed narratives
-
-```{python}
-from IPython.display import Image, display
-from pathlib import Path
-
-root = Path(".")
-baseline_plot = root / "results" / "baseline" / "baseline_coefficients.png"
-if baseline_plot.exists():
-    display(Image(filename=str(baseline_plot)))
+if os.path.exists(train_idx_path) and os.path.exists(test_idx_path):
+    train_idx = np.load(train_idx_path)
+    test_idx = np.load(test_idx_path)
 else:
-    print("Baseline explainability figure not found:")
-    print(baseline_plot)
+    all_idx = df.index.to_numpy()
+    labels = df["label"].astype(int)
+    train_idx, test_idx = train_test_split(
+        all_idx, test_size=0.2, random_state=RANDOM_STATE, stratify=labels
+    )
 ```
 
-## Transformer Model
+This keeps baseline/transformer comparison consistent on the same split.
 
-I then fine-tune DistilBERT for the same task.
+## 4. EDA – Main Signals
 
-Why DistilBERT:
+::: {.columns}
+::: {.column width="33%"}
+![](results/eda/label_distribution.png){fig-alt="Label distribution"}
+:::
+::: {.column width="33%"}
+![](results/eda/text_length_by_label.png){fig-alt="Text length by label"}
+:::
+::: {.column width="33%"}
+![](results/eda/pleasantness_by_label.png){fig-alt="Pleasantness by label"}
+:::
+:::
 
-- contextual understanding of language
-- lighter than full BERT
-- efficient enough for experimentation on a student project
+EDA conclusions used for modeling:
 
-## Transformer Results
+- class distribution is close to balanced
+- text length alone is weakly discriminative
+- affective/psycholinguistic variables carry stronger signal
 
-Main Transformer results:
+## 5. Baseline Model – Feature Engineering and Pipeline
 
-- Accuracy: about 0.73--0.76 depending on the run/checkpoint
-- Macro F1: about 0.74--0.75
-- ROC-AUC: around 0.82
-- stronger ranking quality than the baseline
+From `notebooks/02_train_baseline.ipynb`:
 
-The Transformer does not dramatically improve macro F1, but it improves contextual discrimination and probability ranking.
+```python
+FEATURES = [
+    "syntax_ari", "syntax_fk_grade", "lex_liwc_WC", "lex_liwc_Authentic",
+    "lex_liwc_Tone", "lex_dal_avg_pleasantness", "lex_dal_avg_activation",
+    "lex_dal_avg_imagery", "sentiment", "lex_liwc_i", "lex_liwc_negemo",
+    "lex_liwc_anx", "lex_liwc_sad", "lex_liwc_negate", "lex_liwc_social"
+]
 
-## Baseline vs Transformer
+pipe = Pipeline(steps=[
+    ("imputer", SimpleImputer(strategy="median")),
+    ("scaler", StandardScaler()),
+    ("clf", LogisticRegression(max_iter=2000, random_state=RANDOM_STATE))
+])
+```
 
-| Metric | Logistic Regression | DistilBERT |
+Design target: strong interpretability + stable baseline performance.
+
+## 6. Baseline Evaluation – Hot Sections
+
+From `notebooks/02_train_baseline.ipynb`:
+
+```python
+y_pred = pipe.predict(X_test)
+print(classification_report(y_test, y_pred, digits=3))
+
+y_proba = pipe.predict_proba(X_test)[:, 1]
+roc_auc = roc_auc_score(y_test, y_proba)
+ap = average_precision_score(y_test, y_proba)
+```
+
+Threshold optimization section:
+
+```python
+thresholds = np.linspace(0.1, 0.9, 50)
+for t in thresholds:
+    y_pred_thresh = (y_proba >= t).astype(int)
+    f1_scores.append(f1_score(y_test, y_pred_thresh, average="macro"))
+```
+
+## 7. Baseline Results
+
+Baseline summary used in report (`reports/results.md`):
+
+| Metric | Value |
+|---|---:|
+| Accuracy | 0.748 |
+| Macro F1 | 0.748 |
+| ROC-AUC | 0.814 |
+| AP (PR-AUC) | 0.769 |
+| Best threshold | 0.54 |
+
+::: {.columns}
+::: {.column width="33%"}
+![](results/baseline/confusion_matrix.png){fig-alt="Baseline confusion matrix"}
+:::
+::: {.column width="33%"}
+![](results/baseline/roc_curve.png){fig-alt="Baseline ROC curve"}
+:::
+::: {.column width="33%"}
+![](results/baseline/pr_curve.png){fig-alt="Baseline PR curve"}
+:::
+:::
+
+## 8. Transformer Model – Tokenization and Dataset Build
+
+From `notebooks/03_train_transformer.ipynb`:
+
+```python
+MODEL_NAME = "distilbert-base-uncased"
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+
+train_ds = Dataset.from_dict({"text": X_train, "label": y_train})
+test_ds  = Dataset.from_dict({"text": X_test,  "label": y_test})
+
+def tokenize(batch):
+    return tokenizer(batch["text"], truncation=True, padding="max_length", max_length=128)
+```
+
+HF login option added for faster model downloads / higher hub limits.
+
+## 9. Transformer Fine-Tuning – Key Configuration
+
+From `notebooks/03_train_transformer.ipynb`:
+
+```python
+args = TrainingArguments(
+    output_dir="../results/transformer/distilbert",
+    eval_strategy="epoch",
+    save_strategy="epoch",
+    load_best_model_at_end=True,
+    metric_for_best_model="f1_macro",
+    num_train_epochs=3,
+    per_device_train_batch_size=16,
+    per_device_eval_batch_size=32,
+    learning_rate=2e-5,
+    weight_decay=0.01,
+    seed=RANDOM_STATE,
+)
+```
+
+```python
+trainer = Trainer(
+    model=model,
+    args=args,
+    train_dataset=train_tok,
+    eval_dataset=test_tok,
+    compute_metrics=compute_metrics,
+)
+trainer.train()
+```
+
+## 10. Transformer Evaluation – Same Stack as Baseline
+
+From `notebooks/03_train_transformer.ipynb`:
+
+```python
+pred = trainer.predict(test_tok)
+logits = pred.predictions
+y_pred = np.argmax(logits, axis=-1)
+
+roc_auc = roc_auc_score(y_true, y_proba)
+ap = average_precision_score(y_true, y_proba)
+print(classification_report(y_true, y_pred, digits=3))
+```
+
+Evaluation sections are separated in notebook cells:
+
+- classification report
+- confusion matrix
+- ROC-AUC + ROC plot
+- AP + PR plot
+
+## 11. Transformer Results (Current Run)
+
+From `results/transformer/metrics.json`:
+
+| Metric | Value |
+|---|---:|
+| Accuracy | 0.762 |
+| Macro F1 | 0.761 |
+| ROC-AUC | 0.829 |
+| AP (PR-AUC) | 0.841 |
+| Test samples | 143 |
+
+From `results/transformer/classification_report.txt`:
+
+```text
+precision/recall/f1:
+class 0 -> 0.778 / 0.710 / 0.742
+class 1 -> 0.750 / 0.811 / 0.779
+```
+
+## 12. Transformer Diagnostic Plots
+
+::: {.columns}
+::: {.column width="33%"}
+![](results/transformer/confusion_matrix.png){fig-alt="Transformer confusion matrix"}
+:::
+::: {.column width="33%"}
+![](results/transformer/roc_curve.png){fig-alt="Transformer ROC"}
+:::
+::: {.column width="33%"}
+![](results/transformer/pr_curve.png){fig-alt="Transformer PR"}
+:::
+:::
+
+## 13. Baseline vs Transformer
+
+| Metric | Baseline (LogReg) | Transformer (DistilBERT) |
 |---|---:|---:|
-| Accuracy | 0.748 | ~0.73--0.76 |
-| Macro F1 | 0.748 | ~0.74--0.75 |
-| ROC-AUC | 0.814 | ~0.828 |
-| Avg Precision | 0.769 | ~0.84 |
+| Accuracy | 0.748 | 0.762 |
+| Macro F1 | 0.748 | 0.761 |
+| ROC-AUC | 0.814 | 0.829 |
+| AP (PR-AUC) | 0.769 | 0.841 |
 
-The baseline remains competitive, while the Transformer provides stronger semantic modeling.
+Observed pattern:
 
-## Transformer Explainability with SHAP
+- Transformer improves ranking quality and overall discrimination
+- Baseline remains competitive with much higher transparency
 
-For the Transformer, I use SHAP to inspect token-level contributions.
+## 14. Explainability Notebook – Structure
 
-SHAP allows me to see:
+`notebooks/04_explainability.ipynb` has three technical blocks:
 
-- which tokens push the model toward stress
-- which tokens push it away from stress
-- how the final prediction is built from local token contributions
+1. Baseline explainability from logistic coefficients
+2. SHAP token-level explanations for transformer predictions
+3. Integrated Gradients token attribution (Captum)
 
-## SHAP Example
+This matches the README explainability plan.
 
-```{python}
-from IPython.display import Image, display
-from pathlib import Path
+## 15. Baseline Explainability (Feature-Based)
 
-root = Path(".")
-shap_img = root / "results" / "explainability" / "SHAP_values_stress.png"
+From `notebooks/04_explainability.ipynb`:
 
-if shap_img.exists():
-    display(Image(filename=str(shap_img)))
-else:
-    print("SHAP example figure not found:")
-    print(shap_img)
+```python
+coef_path = ROOT / "results" / "baseline" / "logreg_coefficients.csv"
+coef_df = pd.read_csv(coef_path).sort_values("coefficient", ascending=False)
 ```
 
-## Reading the SHAP Explanation
+![](results/explainability/baseline_coefficients.png){fig-alt="Baseline coefficients"}
 
-In the SHAP text plot:
+Interpretation: global, model-level, directly auditable.
 
-- the **base value** is the model's average output before reading the specific post
-- red tokens push the prediction toward the selected class
-- blue tokens push it away
-- the final score is obtained by summing token contributions to the base value
+## 16. Transformer Explainability – SHAP (Local)
 
-This makes the Transformer's decision process much more transparent.
+From `notebooks/04_explainability.ipynb`:
 
-## SHAP Comparison Across Classes
+```python
+masker = shap.maskers.Text(tokenizer)
+explainer = shap.Explainer(predict_fn, masker, output_names=["non_stress", "stress"])
+shap_values = explainer(shap_texts)
 
-I also compare the token-level explanation for the non-stress class to show how the same post can provide evidence in opposite directions depending on the selected output.
-
-```{python}
-from IPython.display import Image, display
-from pathlib import Path
-
-root = Path(".")
-shap_nonstress_img = root / "results" / "explainability" / "SHAP_values_non-stress.png"
-
-if shap_nonstress_img.exists():
-    display(Image(filename=str(shap_nonstress_img)))
-else:
-    print("Non-stress SHAP figure not found:")
-    print(shap_nonstress_img)
+# class-specific explanation
+shap.plots.text(shap_values[0, :, 1])  # stress class
 ```
 
-## Global Explainability
+::: {.columns}
+::: {.column width="50%"}
+![](results/explainability/SHAP_values_stress.png){fig-alt="SHAP stress"}
+:::
+::: {.column width="50%"}
+![](results/explainability/SHAP_values_non-stress.png){fig-alt="SHAP non-stress"}
+:::
+:::
 
-To complement the local SHAP explanation, I also inspect a global importance view.
+## 17. Transformer Explainability – SHAP Global + Waterfall
 
-This plot aggregates mean absolute SHAP values and highlights which tokens are most consistently influential for the stress class across the explained examples.
+From `notebooks/04_explainability.ipynb`:
 
-```{python}
-from IPython.display import Image, display
-from pathlib import Path
-
-root = Path(".")
-global_shap_img = root / "results" / "explainability" / "global_token.png"
-
-if global_shap_img.exists():
-    display(Image(filename=str(global_shap_img)))
-else:
-    print("Global SHAP figure not found:")
-    print(global_shap_img)
+```python
+shap.plots.bar(shap_values[:,:,1])  # stress output
 ```
 
-## Integrated Gradients
+::: {.columns}
+::: {.column width="50%"}
+![](results/explainability/global_token.png){fig-alt="Global SHAP tokens"}
+:::
+::: {.column width="50%"}
+![](results/explainability/waterfall_example1.png){fig-alt="SHAP waterfall"}
+:::
+:::
 
-I also use Integrated Gradients as a second explainability method.
+## 18. Transformer Explainability – Integrated Gradients
 
-This provides:
+From `notebooks/04_explainability.ipynb`:
 
-- a gradient-based view of token importance
-- a useful comparison with SHAP
-- a more robust explainability section overall
+```python
+from captum.attr import IntegratedGradients
 
-```{python}
-from IPython.display import Image, display
-from pathlib import Path
-
-root = Path(".")
-ig_img = root / "results" / "explainability" / "integrated_gradients.png"
-
-if ig_img.exists():
-    display(Image(filename=str(ig_img)))
-else:
-    print("Integrated Gradients figure not found:")
-    print(ig_img)
+ig = IntegratedGradients(forward_emb)
+attributions, delta = ig.attribute(
+    embeddings,
+    baselines=baseline,
+    additional_forward_args=(attention_mask,),
+    n_steps=32,
+    return_convergence_delta=True,
+)
 ```
 
-## Main Takeaways
+Integrated Gradients is used as a gradient-based complement to SHAP.
 
-This project shows that:
+## 19. Technical Limitations (Current Stage)
 
-- interpretable feature-based models remain strong baselines
-- Transformer models improve contextual understanding and ranking quality
-- explainability is essential in mental-health-related NLP tasks
+- Transformer model selection is still tied to the notebook flow
+- Explainability runtime is expensive (SHAP/IG sample size kept small)
+- No automated test suite yet (project still notebook-driven)
 
-A combined view of performance and explanation gives the most informative analysis.
+## 20. Final Takeaways
 
-## Future Work
-
-Possible extensions include:
-
-- larger Transformer variants
-- better calibration and threshold optimization
-- more robust global explainability
-- hybrid models combining handcrafted features and contextual embeddings
+- Strong baseline with interpretable feature-level behavior
+- Transformer yields better ranking and slightly better aggregate performance
+- Explainability section is complete at both global and local levels
+- Project is presentation-ready and technically defensible for academic review
 
 ## Thank you
 
