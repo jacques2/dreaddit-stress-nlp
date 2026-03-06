@@ -13,6 +13,7 @@ huggingface_hub
 
 # Explainability
 shap
+captum
 
 # Visualization
 matplotlib

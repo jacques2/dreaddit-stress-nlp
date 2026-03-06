@@ -39,3 +39,7 @@ results/transformer/distilbert
 
 # Misc
 *.log
+
+# Quarto / presentation builds
+presentation.html
+presentation_files/

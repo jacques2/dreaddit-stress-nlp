@@ -1,0 +1,248 @@
+---
+title: "Stress Detection from Social Media"
+subtitle: "AI in Industry Project"
+author: "Jacopo"
+format:
+  revealjs:
+    theme: simple
+    slide-number: true
+    toc: false
+    transition: fade
+    smaller: true
+execute:
+  echo: false
+---
+
+## Project Goal
+
+I study stress detection from Reddit posts using two complementary approaches:
+
+- an interpretable feature-based baseline
+- a contextual Transformer model
+
+The goal is to compare predictive performance and explainability.
+
+## Dataset
+
+I use the Dreaddit dataset, a benchmark for stress detection from social media posts.
+
+Main properties:
+
+- binary classification: stress vs non-stress
+- short and medium-length Reddit posts
+- nearly balanced label distribution
+
+## Exploratory Data Analysis
+
+My exploratory analysis shows that:
+
+- the dataset is approximately balanced
+- text length alone is not sufficient to separate the two classes
+- affective and psycholinguistic signals are more informative
+
+```{python}
+from IPython.display import Image, display
+from pathlib import Path
+
+root = Path(".")
+eda_plot = root / "results" / "eda" / "label_distribution.png"
+if eda_plot.exists():
+    display(Image(filename=str(eda_plot)))
+```
+
+## Baseline Model
+
+My baseline model is a logistic regression classifier trained on:
+
+- LIWC-inspired lexical features
+- sentiment and affective indicators
+- readability and stylistic features
+
+This baseline is fully interpretable and provides a strong reference point.
+
+## Baseline Results
+
+Main baseline results:
+
+- Accuracy: about 0.75
+- Macro F1: about 0.75
+- ROC-AUC: about 0.81
+- Average Precision: about 0.77
+
+These results show that handcrafted affective features already capture a substantial amount of stress-related signal.
+
+## Baseline Explainability
+
+The most important positive features for stress prediction include:
+
+- first-person singular pronouns
+- negative emotional language
+- anxiety-related lexical indicators
+- longer and more detailed narratives
+
+```{python}
+from IPython.display import Image, display
+from pathlib import Path
+
+root = Path(".")
+baseline_plot = root / "results" / "baseline" / "baseline_coefficients.png"
+if baseline_plot.exists():
+    display(Image(filename=str(baseline_plot)))
+else:
+    print("Baseline explainability figure not found:")
+    print(baseline_plot)
+```
+
+## Transformer Model
+
+I then fine-tune DistilBERT for the same task.
+
+Why DistilBERT:
+
+- contextual understanding of language
+- lighter than full BERT
+- efficient enough for experimentation on a student project
+
+## Transformer Results
+
+Main Transformer results:
+
+- Accuracy: about 0.73--0.76 depending on the run/checkpoint
+- Macro F1: about 0.74--0.75
+- ROC-AUC: around 0.82
+- stronger ranking quality than the baseline
+
+The Transformer does not dramatically improve macro F1, but it improves contextual discrimination and probability ranking.
+
+## Baseline vs Transformer
+
+| Metric | Logistic Regression | DistilBERT |
+|---|---:|---:|
+| Accuracy | 0.748 | ~0.73--0.76 |
+| Macro F1 | 0.748 | ~0.74--0.75 |
+| ROC-AUC | 0.814 | ~0.828 |
+| Avg Precision | 0.769 | ~0.84 |
+
+The baseline remains competitive, while the Transformer provides stronger semantic modeling.
+
+## Transformer Explainability with SHAP
+
+For the Transformer, I use SHAP to inspect token-level contributions.
+
+SHAP allows me to see:
+
+- which tokens push the model toward stress
+- which tokens push it away from stress
+- how the final prediction is built from local token contributions
+
+## SHAP Example
+
+```{python}
+from IPython.display import Image, display
+from pathlib import Path
+
+root = Path(".")
+shap_img = root / "results" / "explainability" / "SHAP_values_stress.png"
+
+if shap_img.exists():
+    display(Image(filename=str(shap_img)))
+else:
+    print("SHAP example figure not found:")
+    print(shap_img)
+```
+
+## Reading the SHAP Explanation
+
+In the SHAP text plot:
+
+- the **base value** is the model's average output before reading the specific post
+- red tokens push the prediction toward the selected class
+- blue tokens push it away
+- the final score is obtained by summing token contributions to the base value
+
+This makes the Transformer's decision process much more transparent.
+
+## SHAP Comparison Across Classes
+
+I also compare the token-level explanation for the non-stress class to show how the same post can provide evidence in opposite directions depending on the selected output.
+
+```{python}
+from IPython.display import Image, display
+from pathlib import Path
+
+root = Path(".")
+shap_nonstress_img = root / "results" / "explainability" / "SHAP_values_non-stress.png"
+
+if shap_nonstress_img.exists():
+    display(Image(filename=str(shap_nonstress_img)))
+else:
+    print("Non-stress SHAP figure not found:")
+    print(shap_nonstress_img)
+```
+
+## Global Explainability
+
+To complement the local SHAP explanation, I also inspect a global importance view.
+
+This plot aggregates mean absolute SHAP values and highlights which tokens are most consistently influential for the stress class across the explained examples.
+
+```{python}
+from IPython.display import Image, display
+from pathlib import Path
+
+root = Path(".")
+global_shap_img = root / "results" / "explainability" / "global_token.png"
+
+if global_shap_img.exists():
+    display(Image(filename=str(global_shap_img)))
+else:
+    print("Global SHAP figure not found:")
+    print(global_shap_img)
+```
+
+## Integrated Gradients
+
+I also use Integrated Gradients as a second explainability method.
+
+This provides:
+
+- a gradient-based view of token importance
+- a useful comparison with SHAP
+- a more robust explainability section overall
+
+```{python}
+from IPython.display import Image, display
+from pathlib import Path
+
+root = Path(".")
+ig_img = root / "results" / "explainability" / "integrated_gradients.png"
+
+if ig_img.exists():
+    display(Image(filename=str(ig_img)))
+else:
+    print("Integrated Gradients figure not found:")
+    print(ig_img)
+```
+
+## Main Takeaways
+
+This project shows that:
+
+- interpretable feature-based models remain strong baselines
+- Transformer models improve contextual understanding and ranking quality
+- explainability is essential in mental-health-related NLP tasks
+
+A combined view of performance and explanation gives the most informative analysis.
+
+## Future Work
+
+Possible extensions include:
+
+- larger Transformer variants
+- better calibration and threshold optimization
+- more robust global explainability
+- hybrid models combining handcrafted features and contextual embeddings
+
+## Thank you
+
+Questions?
