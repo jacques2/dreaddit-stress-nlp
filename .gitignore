@@ -44,3 +44,4 @@ results/transformer/distilbert
 presentation.html
 presentation_files/
 .cache/deno
+presentation.txt
