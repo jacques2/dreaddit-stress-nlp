@@ -1,78 +1,129 @@
 # Results Summary
 
-This section summarizes the main findings obtained so far.
+This document summarizes the final results of the project, from exploratory analysis to model comparison and explainability.
 
 ## Exploratory Analysis
+
+Main observations from EDA:
+
 - The dataset is nearly balanced between stress and non-stress posts.
+- Text length alone has limited discriminative power, with substantial overlap between classes.
+- Stress posts show more long outliers, often corresponding to personal narratives.
+- Affective variables such as pleasantness and sentiment are more informative than simple surface statistics.
+
+These findings motivate the comparison between:
+
+- an interpretable feature-based baseline
+- a contextual Transformer model
+
+### Label Distribution
+
 ![Label Distribution](../results/eda/label_distribution.png)
-- Text length alone shows limited discriminative power, with substantial overlap between classes.
+
+### Text Length by Label
+
 ![Text Length By Label](../results/eda/text_length_by_label.png)
-- Stress-related posts exhibit a higher number of long outliers, often corresponding to extended personal narratives.
-- Affective features such as sentiment and lexical pleasantness show clearer differences between classes.
+
+### Pleasantness by Label
+
 ![Pleasantness By Label Distribution](../results/eda/pleasantness_by_label.png)
-These findings motivate the use of interpretable affective baselines and contextual NLP models.
 
 ## Baseline Model Performance
 
-An interpretable logistic regression model was trained using affective, psycholinguistic, and readability features.
+The baseline is a Logistic Regression classifier trained on a compact set of affective, psycholinguistic, and readability features.
 
 ### Hold-out Test Performance
+
 - Accuracy: **0.748**
 - Macro F1-score: **0.748**
-- The model substantially outperforms the majority baseline (0.516).
-- Precision and recall are balanced across both classes.
+- Majority baseline accuracy: **0.516**
 
-### Cross-Validation Performance
-- 5-fold stratified CV macro F1 (mean): **0.755**
-- Standard deviation: **0.025**
-
-Cross-validation confirms that performance is stable and not dependent on a specific train/test split.
-
-### Ranking-Based Evaluation
-- ROC-AUC: **0.814**
-- Average Precision (PR-AUC): **0.769**
-
-The ROC-AUC indicates strong ranking capability, while the Precision–Recall curve confirms that positive (stress) predictions remain reasonably reliable across thresholds.
-
-### Threshold Optimization
-- Optimal threshold: **0.54**
-- Best macro F1: **0.762**
-
-The modest improvement over the default threshold suggests that logistic regression produces reasonably calibrated probability estimates.
-
-## Transformer Model Performance (DistilBERT)
-
-The fine-tuned Transformer was evaluated on the same held-out test split (`n_test = 143`).
-
-### Hold-out Test Performance
-- Accuracy: **0.755**
-- Macro F1-score: **0.752**
-- ROC-AUC: **0.832**
-- Average Precision (PR-AUC / AP): **0.849**
-- Threshold-based gains over the baseline are small, while ranking-based gains are clearer.
+The baseline clearly outperforms the naive majority classifier and shows balanced behavior across the two classes.
 
 ### Classification Report
+
 ```text
               precision    recall  f1-score   support
 
-           0      0.793     0.667     0.724        69
-           1      0.729     0.838     0.780        74
+           0      0.732     0.754     0.743        69
+           1      0.764     0.743     0.753        74
 
-    accuracy                          0.755       143
-   macro avg      0.761     0.752     0.752       143
-weighted avg      0.760     0.755     0.753       143
+    accuracy                          0.748       143
+   macro avg      0.748     0.748     0.748       143
+weighted avg      0.749     0.748     0.748       143
 ```
 
-### Confusion Matrix
+The confusion pattern is fairly symmetric, which suggests that the baseline is not strongly biased toward one class.
+
+### Cross-Validation Performance
+
+- 5-fold stratified CV macro F1 mean: **0.755**
+- Standard deviation: **0.025**
+
+This confirms that the baseline is stable and not overly dependent on a single favorable split.
+
+### Ranking-Based Evaluation
+
+- ROC-AUC: **0.814**
+- Average Precision (PR-AUC): **0.769**
+
+The baseline is therefore competitive not only as a classifier, but also as a probabilistic scorer.
+
+### Threshold Optimization
+
+- Best threshold: **0.54**
+- Best macro F1 after threshold tuning: **0.762**
+
+This modest improvement over the default threshold suggests that Logistic Regression produces reasonably calibrated probabilities.
+
+### Baseline Diagnostic Plots
+
+![Baseline Confusion Matrix](../results/baseline/confusion_matrix.png)
+
+![Baseline ROC Curve](../results/baseline/roc_curve.png)
+
+![Baseline Precision-Recall Curve](../results/baseline/pr_curve.png)
+
+## Transformer Model Performance (DistilBERT)
+
+The Transformer model is a fine-tuned DistilBERT classifier evaluated on the same held-out test split (`n_test = 143`).
+
+### Hold-out Test Performance
+
+- Accuracy: **0.748**
+- Macro F1-score: **0.745**
+- ROC-AUC: **0.819**
+- Average Precision (PR-AUC / AP): **0.835**
+
+### Classification Report
+
+```text
+              precision    recall  f1-score   support
+
+           0      0.780     0.667     0.719        69
+           1      0.726     0.824     0.772        74
+
+    accuracy                          0.748       143
+   macro avg      0.753     0.745     0.745       143
+weighted avg      0.752     0.748     0.746       143
+```
+
+Compared with the baseline, the Transformer is more sensitive to the stress class, but this comes with lower recall on non-stress and more false positives overall.
+
+Approximate confusion profile:
+
+- TN = 46
+- FP = 23
+- FN = 13
+- TP = 61
+
+### Transformer Diagnostic Plots
+
 ![Transformer Confusion Matrix](../results/transformer/confusion_matrix.png)
 
-### ROC Curve
 ![Transformer ROC Curve](../results/transformer/roc_curve.png)
 
-### Precision-Recall Curve
 ![Transformer PR Curve](../results/transformer/pr_curve.png)
-
----
 
 ## Baseline vs Transformer
 
@@ -83,32 +134,112 @@ weighted avg      0.760     0.755     0.753       143
 | ROC-AUC | 0.814 | 0.819 |
 | AP (PR-AUC) | 0.769 | 0.835 |
 
-Interpretation:
+### Interpretation
 
-- Accuracy and macro F1 are very close, so the Transformer does not deliver a decisive improvement in final label predictions on this split.
-- ROC-AUC and AP are higher for the Transformer, indicating better ranking quality and stronger probabilistic separation.
-- Compared with the threshold-optimized baseline (best macro F1 = 0.762), the Transformer does not improve the final F1 on this run.
-- Given the small test set (`n_test = 143`), these differences should be interpreted cautiously.
+- Threshold-based classification performance does not improve with the Transformer.
+- Accuracy is identical for the two models.
+- Macro F1 is slightly lower for DistilBERT than for the baseline.
+- The tuned baseline macro F1 (`0.762`) remains clearly above the final Transformer macro F1 (`0.745`).
+- The Transformer performs better on ranking-based metrics, especially AP, which indicates stronger probabilistic separation.
 
----
+This means the fair conclusion is not that DistilBERT is universally better. The actual result is more nuanced:
 
-## Feature Interpretation
+- Logistic Regression remains a very strong, simple, and interpretable classifier.
+- DistilBERT adds value mainly as a scorer, thanks to better contextual ranking quality.
 
-The most influential signals for stress prediction include:
+Given the small test set, these differences should be interpreted cautiously.
 
-- First-person singular pronouns (`lex_liwc_i`)
-- Negative emotional language (`lex_liwc_negemo`, `lex_liwc_anx`)
-- Text length (`lex_liwc_WC`)
-- Imagery-related lexical features
+## Explainability
 
-Features associated with positive emotional tone, social references, and higher readability reduce the likelihood of stress predictions.
+The project includes explainability for both the baseline and the Transformer.
 
-Because features were standardized, coefficient magnitudes are directly comparable.
+### Baseline Explainability
 
----
+For Logistic Regression, interpretation is direct through coefficient signs and magnitudes.
 
-## Error Analysis
+Main positive contributors to stress:
 
-High-confidence misclassifications mainly correspond to emotionally expressive but non-stress posts. These cases suggest that feature-based models may conflate personal narrative style with psychological stress.
+- `lex_liwc_i`
+- `lex_liwc_WC`
+- `lex_liwc_negemo`
+- `lex_liwc_anx`
+- `lex_dal_avg_imagery`
 
-This limitation motivates evaluating semantic models (e.g., Transformer-based architectures) capable of capturing contextual meaning beyond surface-level affective cues.
+Main negative contributors to stress:
+
+- `lex_liwc_Tone`
+- `lex_dal_avg_pleasantness`
+- `sentiment`
+- `lex_liwc_social`
+- readability features
+
+These patterns are consistent with the EDA: stress-related posts are often more self-focused, more negative, and more narratively detailed.
+
+![Baseline Coefficients](../results/explainability/baseline_coefficients.png)
+
+### Transformer Explainability with SHAP
+
+SHAP provides local token-level explanations for Transformer predictions.
+
+In the analyzed stress example, the model prediction is pushed upward by tokens such as:
+
+- `panic`
+- `attacks`
+- `experience`
+- `my`
+- `help`
+
+These are psychologically plausible cues and support the idea that the model is relying on meaningful contextual evidence rather than arbitrary artifacts.
+
+![SHAP Stress Explanation](../results/explainability/SHAP_values_stress.png)
+
+![SHAP Non-Stress Explanation](../results/explainability/SHAP_values_non-stress.png)
+
+Global SHAP analysis also highlights stress-related tokens such as `panic`, `attacks`, and `anxiety` as consistently important across examples.
+
+![Global SHAP Token Importance](../results/explainability/global_token.png)
+
+The waterfall explanation confirms that the final stress score is driven by the cumulative effect of multiple meaningful tokens, not by a single isolated keyword.
+
+![SHAP Waterfall Example](../results/explainability/waterfall_example1.png)
+
+### Transformer Explainability with Integrated Gradients
+
+Integrated Gradients provides a gradient-based perspective on token importance.
+
+The main high-attribution tokens are consistent with SHAP:
+
+- `attacks`
+- `anxiety`
+- `severe`
+- `panic`
+- self-referential tokens such as `I` and `my`
+
+This agreement between SHAP and Integrated Gradients is useful because the two methods rely on different principles:
+
+- SHAP is perturbation-based
+- Integrated Gradients is gradient-based
+
+Their qualitative consistency suggests that the Transformer is using linguistically meaningful stress-related signals.
+
+At the same time, these explanations should still be interpreted as approximate tools for inspection, not as exact proofs of model reasoning.
+
+## Final Interpretation
+
+The final project outcome is methodologically meaningful even though the Transformer does not beat the baseline on final hard-label classification.
+
+The key findings are:
+
+- The feature-based baseline is strong, stable, and highly interpretable.
+- DistilBERT does not improve accuracy and slightly underperforms on macro F1.
+- DistilBERT does improve ROC-AUC and especially AP, so it provides better ranking quality.
+- Explainability confirms that both models rely on plausible stress-related signals.
+
+Overall, the project shows that handcrafted affective and psycholinguistic features already capture a large portion of the signal in Dreaddit. Contextual modeling still adds useful information, but its benefit appears more clearly in probabilistic ranking than in final threshold-based classification performance.
+
+## Limitations
+
+- The dataset is relatively small.
+- Metric differences between models are therefore sensitive to small changes in predictions.
+- Transformer explainability methods are informative but approximate.
+- The task concerns stress-related language patterns, not clinical diagnosis.
