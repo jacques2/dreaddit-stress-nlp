@@ -45,21 +45,22 @@ The modest improvement over the default threshold suggests that logistic regress
 The fine-tuned Transformer was evaluated on the same held-out test split (`n_test = 143`).
 
 ### Hold-out Test Performance
-- Accuracy: **0.762**
-- Macro F1-score: **0.761**
-- ROC-AUC: **0.829**
-- Average Precision (PR-AUC / AP): **0.841**
+- Accuracy: **0.755**
+- Macro F1-score: **0.752**
+- ROC-AUC: **0.832**
+- Average Precision (PR-AUC / AP): **0.849**
+- Threshold-based gains over the baseline are small, while ranking-based gains are clearer.
 
 ### Classification Report
 ```text
               precision    recall  f1-score   support
 
-           0      0.778     0.710     0.742        69
-           1      0.750     0.811     0.779        74
+           0      0.793     0.667     0.724        69
+           1      0.729     0.838     0.780        74
 
-    accuracy                          0.762       143
-   macro avg      0.764     0.760     0.761       143
-weighted avg      0.763     0.762     0.761       143
+    accuracy                          0.755       143
+   macro avg      0.761     0.752     0.752       143
+weighted avg      0.760     0.755     0.753       143
 ```
 
 ### Confusion Matrix
@@ -70,6 +71,24 @@ weighted avg      0.763     0.762     0.761       143
 
 ### Precision-Recall Curve
 ![Transformer PR Curve](../results/transformer/pr_curve.png)
+
+---
+
+## Baseline vs Transformer
+
+| Metric | Baseline (LogReg) | Transformer (DistilBERT) |
+|---|---:|---:|
+| Accuracy | 0.748 | 0.748 |
+| Macro F1 | 0.748 | 0.745 |
+| ROC-AUC | 0.814 | 0.819 |
+| AP (PR-AUC) | 0.769 | 0.835 |
+
+Interpretation:
+
+- Accuracy and macro F1 are very close, so the Transformer does not deliver a decisive improvement in final label predictions on this split.
+- ROC-AUC and AP are higher for the Transformer, indicating better ranking quality and stronger probabilistic separation.
+- Compared with the threshold-optimized baseline (best macro F1 = 0.762), the Transformer does not improve the final F1 on this run.
+- Given the small test set (`n_test = 143`), these differences should be interpreted cautiously.
 
 ---
 
@@ -92,4 +111,4 @@ Because features were standardized, coefficient magnitudes are directly comparab
 
 High-confidence misclassifications mainly correspond to emotionally expressive but non-stress posts. These cases suggest that feature-based models may conflate personal narrative style with psychological stress.
 
-This limitation motivates the adoption of semantic models (e.g., Transformer-based architectures) capable of capturing contextual meaning beyond surface-level affective cues.
+This limitation motivates evaluating semantic models (e.g., Transformer-based architectures) capable of capturing contextual meaning beyond surface-level affective cues.

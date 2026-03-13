@@ -219,22 +219,22 @@ Evaluation sections are separated in notebook cells:
 
 ## 11. Transformer Results (Current Run)
 
-From `results/transformer/metrics.json`:
+From the latest notebook rerun (`03_train_transformer.ipynb` outputs):
 
 | Metric | Value |
 |---|---:|
-| Accuracy | 0.762 |
-| Macro F1 | 0.761 |
-| ROC-AUC | 0.829 |
-| AP (PR-AUC) | 0.841 |
+| Accuracy | 0.755 |
+| Macro F1 | 0.752 |
+| ROC-AUC | 0.832 |
+| AP (PR-AUC) | 0.849 |
 | Test samples | 143 |
 
-From `results/transformer/classification_report.txt`:
+Classification report summary from the latest notebook rerun:
 
 ```text
 precision/recall/f1:
-class 0 -> 0.778 / 0.710 / 0.742
-class 1 -> 0.750 / 0.811 / 0.779
+class 0 -> 0.793 / 0.667 / 0.724
+class 1 -> 0.729 / 0.838 / 0.780
 ```
 
 ## 12. Transformer Diagnostic Plots
@@ -255,14 +255,16 @@ class 1 -> 0.750 / 0.811 / 0.779
 
 | Metric | Baseline (LogReg) | Transformer (DistilBERT) |
 |---|---:|---:|
-| Accuracy | 0.748 | 0.762 |
-| Macro F1 | 0.748 | 0.761 |
-| ROC-AUC | 0.814 | 0.829 |
-| AP (PR-AUC) | 0.769 | 0.841 |
+| Accuracy | 0.748 | 0.755 |
+| Macro F1 | 0.748 | 0.752 |
+| ROC-AUC | 0.814 | 0.832 |
+| AP (PR-AUC) | 0.769 | 0.849 |
 
 Observed pattern:
 
-- Transformer improves ranking quality and overall discrimination
+- Accuracy and macro F1 are very close, so the Transformer does not show a decisive classification gain on this run
+- ROC-AUC and AP are higher, indicating better ranking quality
+- Relative to the threshold-optimized baseline (`best macro F1 = 0.762`), the Transformer does not improve final F1
 - Baseline remains competitive with much higher transparency
 
 ## 14. Explainability Notebook – Structure
