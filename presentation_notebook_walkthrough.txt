@@ -1,0 +1,425 @@
+STRESS DETECTION FROM SOCIAL MEDIA - NOTEBOOK WALKTHROUGH SCRIPT
+
+Use this file as a speaking guide while opening the notebooks in order.
+It is meant to sound like a real oral presentation, not like slides.
+The focus is on motivations, interpretation of results, and awareness of limits.
+Do not read it word by word. Use it as a structured prompt.
+
+
+INTRODUCTION
+
+Today I will present my project on stress detection from social media text.
+The task is binary classification: given a Reddit post, the model has to predict whether it expresses stress or not.
+
+The project is based on the Dreaddit dataset, which contains public and anonymized Reddit posts labeled as stress or non-stress.
+My goal was not to build a clinical tool, but to compare different NLP approaches on a sensitive task and study their behavior, interpretability, and limits.
+
+I organized the project as a sequence of notebooks.
+This is useful because each notebook corresponds to one stage of reasoning:
+- first exploratory analysis
+- then an interpretable baseline
+- then a contextual Transformer model
+- finally explainability
+
+So I will follow the notebooks in order, because they reflect the actual logic of the project.
+
+
+NOTEBOOK 01 - EXPLORATORY DATA ANALYSIS
+
+Open:
+- `notebooks/01_eda.ipynb.ipynb`
+
+Sections to show:
+- `# Exploratory Data Analysis`
+- `### Loading dataset and explore`
+- `### Label distribution`
+- `### Text Length Analysis`
+- `### Affective Feature Analysis`
+- `## Exploratory Data Analysis Summary`
+
+What I say:
+
+I start from exploratory analysis because I want the later modeling choices to be motivated by the data rather than arbitrary.
+
+The dataset is Dreaddit, and in my version it contains 715 posts.
+An important point is that the classes are almost balanced, with stress posts only slightly more frequent than non-stress posts.
+So class imbalance is not the main challenge here.
+
+The first thing I show is the label distribution, because it tells me whether I need strong imbalance corrections.
+In this case, I do not.
+
+Then I move to text length.
+The key result is that stress posts tend to include more long outliers and often look more narrative and personal, but text length alone is not enough to separate the classes.
+So I do not want to build a model that relies only on simple surface statistics.
+
+The next important point is the affective analysis.
+Here I see clearer differences between the classes, especially in pleasantness and sentiment-related variables.
+This is the first concrete sign that affective and psycholinguistic information may be useful.
+
+Why this notebook matters:
+
+This notebook gives me the motivation for the whole project.
+It suggests that:
+- a compact interpretable baseline based on linguistic and affective signals is reasonable
+- a contextual model may still help because the task is not reducible to simple counts or length
+
+End-of-notebook takeaway:
+
+My takeaway from EDA is that the dataset is balanced enough for standard evaluation, that text length is only weakly informative, and that affective and psycholinguistic cues look much more promising.
+That is why I move next to an interpretable feature-based baseline.
+
+
+NOTEBOOK 02 - BASELINE MODEL
+
+Open:
+- `notebooks/02_train_baseline.ipynb`
+
+Sections to show in order:
+- `## 1. Introduction`
+- `## 2. Data Loading`
+- `## 3. Feature Selection`
+- `## Model and Pipeline Design`
+- `## 5. Evaluation`
+- `## 6. Interpretation`
+- `## 7. Error Analysis`
+- `## 8. Summary`
+
+Core code cells worth stopping on:
+
+Cell 7, feature list:
+```python
+FEATURES = [...]
+```
+
+Cell 11, model pipeline:
+```python
+pipe = Pipeline(...)
+```
+
+Cell 16, classification report and confusion matrix:
+```python
+print(classification_report(y_test, y_pred, digits=3))
+```
+
+Cell 24, ROC-AUC:
+```python
+roc_auc = roc_auc_score(y_test, y_proba)
+```
+
+Cell 28, Average Precision:
+```python
+ap = average_precision_score(y_test, y_proba)
+```
+
+Cell 32, threshold optimization:
+```python
+thresholds = np.linspace(0.1, 0.9, 50)
+```
+
+What I say:
+
+In this notebook I build the first actual model, which is intentionally simple and interpretable.
+I use Logistic Regression on a compact set of 15 handcrafted features.
+
+The key point is that the features are not arbitrary numeric columns.
+They were selected to represent readable and interpretable aspects of the text:
+- readability and style
+- LIWC-style psycholinguistic categories
+- DAL affective dimensions
+- sentiment
+- self-focus and negative emotion
+
+First, LIWC-style features come from a psycholinguistic dictionary approach.
+Words are mapped to interpretable categories such as first-person pronouns, negative emotions, anxiety, or social language.
+For each post, the model simply counts how often words from each category appear, usually normalized by the length of the text.
+So these features capture how much certain psychological language patterns are present in the post.
+
+Second, DAL features come from the Dictionary of Affect in Language, which assigns each word continuous scores along affective dimensions such as pleasantness, activation, and imagery.
+Instead of counting categories, the feature is typically computed as the average of those scores across the words in the post.
+
+In short, LIWC features measure the frequency of psychological word categories, while DAL features summarize the overall emotional tone of the vocabulary used in the text.
+This is why I stop briefly on the `FEATURES` list.
+I do not want to discuss every implementation detail, but I want to show that the feature space is compact, meaningful, and motivated by the EDA.
+
+Then I show the pipeline.
+The pipeline is simple: imputation, scaling, and Logistic Regression.
+This matters because I want a transparent baseline that is easy to inspect and difficult to overcomplicate.
+
+In the evaluation section, I first compare the model against a naive majority baseline.
+This is important because it shows that the model is actually learning meaningful structure rather than only exploiting class proportions.
+
+Then I show the classification report and confusion matrix.
+The main message is that the baseline is balanced and credible.
+It does not heavily collapse toward one class.
+
+Main baseline results:
+- Accuracy: 0.748
+- Macro F1: 0.748
+- ROC-AUC: 0.814
+- AP: 0.769
+
+I also show cross-validation because I want to argue that the result is stable, not a lucky split.
+The mean cross-validated macro F1 is about 0.755 with low variance.
+
+Then I show threshold optimization.
+This is a useful methodological step because it tells me whether the model probabilities are reasonable and whether a different operating point helps.
+The best threshold is about 0.54, and the best macro F1 rises to about 0.762.
+So the default threshold was already close to reasonable, but the tuned baseline becomes even stronger.
+
+In the error analysis section, I explain that some mistakes come from emotionally intense but non-stress posts.
+This is exactly the kind of limitation I expect from a feature-based model.
+
+End-of-notebook takeaway:
+
+The baseline is not just a weak reference.
+It is already a strong and stable model, and it gives me a fully interpretable point of comparison.
+This makes the Transformer comparison meaningful rather than superficial.
+
+
+NOTEBOOK 03 - TRANSFORMER MODEL
+
+Open:
+- `notebooks/03_train_transformer.ipynb`
+
+Sections to show in order:
+- `## Introduction`
+- `## Dataset loading and split`
+- `## Model Choice`
+- `## Tokenization and dataset preparation`
+- `## Fine-Tuning`
+- `## 5. Evaluation`
+- `## Baseline vs Transformer`
+- `## Conclusions`
+
+Core code cells worth stopping on:
+
+Cell 5, shared split:
+```python
+train_idx_path = "../data/train_idx.npy"
+```
+
+Cell 9, tokenizer and tokenization:
+```python
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+```
+
+Cell 13, training configuration:
+```python
+args = TrainingArguments(...)
+trainer = Trainer(...)
+```
+
+Cell 19, prediction extraction:
+```python
+pred = trainer.predict(test_tok)
+```
+
+What I say:
+
+In this notebook I move from the interpretable baseline to a contextual Transformer model, specifically DistilBERT.
+
+I chose DistilBERT because it is a pragmatic compromise.
+It captures contextual meaning better than handcrafted features, but it is lighter than larger Transformer models and more realistic for a university project.
+
+The first important methodological point is the shared split.
+I explicitly reuse the same train and test indices as the baseline.
+This is important because it makes the comparison fair.
+If the split changed, the comparison would be much weaker.
+
+Then I briefly show tokenization.
+The point here is not implementation detail for its own sake.
+The point is that the Transformer now reads raw text directly, instead of relying on handcrafted features.
+
+In the fine-tuning section, I show the `TrainingArguments` cell.
+This is the core training configuration:
+- model choice
+- max length 128
+- epochs
+- batch sizes
+- evaluation strategy
+
+I do not spend much time on low-level details, but I show this cell because it is where the main modeling choices are concretely defined.
+
+Then I move to evaluation.
+I show the prediction extraction and then the classification report, confusion matrix, ROC-AUC, and Average Precision.
+
+Final Transformer results:
+- Accuracy: 0.748
+- Macro F1: 0.745
+- ROC-AUC: 0.819
+- AP: 0.835
+
+This is the most important comparison of the whole project.
+
+If I compare the two models as final classifiers:
+- accuracy is identical
+- macro F1 is slightly lower for the Transformer
+
+So I cannot honestly say that DistilBERT improves final threshold-based classification performance.
+
+The classification report tells me that the Transformer is slightly more sensitive to the stress class than to the non-stress class.
+For class 1, stress, recall is about 0.82, while for class 0 recall is about 0.66.
+So the model recovers more stress posts, but at the cost of more false positives on non-stress posts.
+This is consistent with the idea that the Transformer is somewhat more willing to flag stress.
+
+The confusion matrix is: 46 true negatives, 61 true positives, 23 false positives, and 13 false negatives.
+Compared with the baseline, false positives are a bit more frequent than false negatives.
+So the Transformer tends to be slightly more aggressive in predicting stress.
+That can be useful if the priority is to recover more stress-related posts, but it also means lower specificity on non-stress cases.
+
+However, if I look at ranking-based metrics:
+- ROC-AUC is slightly higher
+- AP is clearly higher
+
+This means the Transformer is better as a scorer.
+It is better at ranking stress-related posts above non-stress posts, even if this advantage does not turn into a clear final classification gain at the chosen threshold.
+
+How I explain this to the professor:
+
+If I compare the models as final classifiers, they are very close and the Transformer does not provide a decisive improvement on this split.
+If I compare them as scoring systems, the Transformer is better, because ROC-AUC and Average Precision are clearly higher.
+So the fair conclusion is that contextual modeling adds value, but mainly in ranking quality rather than in final threshold-based classification performance.
+This also means the simpler logistic-regression baseline remains a strong solution, especially considering interpretability, lower complexity, and easier inspection of errors.
+
+This is not a negative result.
+Methodologically, it is actually useful, because it shows that a compact interpretable model already captures a large part of the signal in this dataset.
+
+End-of-notebook takeaway:
+
+The comparison is methodologically useful.
+It shows that a simpler, interpretable baseline is already highly competitive, while the Transformer contributes mainly through better contextual ranking quality.
+
+
+NOTEBOOK 04 - EXPLAINABILITY
+
+Open:
+- `notebooks/04_explainability.ipynb`
+
+Sections to show in order:
+- `## 1. Setup`
+- `## 2. Load Data, Splits, and Trained Transformer`
+- `## 3. Baseline Explainability (Feature-Based)`
+- `## 4. Transformer Explainability with SHAP`
+- `## 5. Transformer Explainability with Integrated Gradients`
+- `## 6. Summary`
+
+Core code cells worth stopping on:
+
+Cell 7, baseline coefficients:
+```python
+coef_path = ROOT / "results" / "baseline" / "logreg_coefficients.csv"
+```
+
+Cell 12, SHAP explainer:
+```python
+explainer = shap.Explainer(predict_fn, masker, output_names=["non_stress", "stress"])
+```
+
+Cell 15, SHAP non-stress explanation:
+```python
+shap.plots.text(shap_values[0, :, 0])
+```
+
+Cell 17, SHAP stress explanation:
+```python
+shap.plots.text(shap_values[0, :, 1])
+```
+
+Cell 19, SHAP waterfall:
+```python
+shap.plots.waterfall(shap_values[0,:,1])
+```
+
+Cell 2 and later IG section, Integrated Gradients:
+```python
+from captum.attr import IntegratedGradients
+```
+
+What I say:
+
+This notebook is important because the task is sensitive.
+I do not want only performance numbers.
+I also want to inspect what the models are actually using.
+
+For the baseline, explainability is direct.
+In the baseline explainability notebook, the strongest positive coefficients are `lex_liwc_i`, `lex_liwc_WC`, `lex_liwc_negemo`, and `lex_liwc_anx`.
+So the baseline stress prediction is most strongly associated with self-focus, longer narratives, negative emotional language, and anxiety-related vocabulary.
+I also observe a positive contribution from `lex_dal_avg_imagery`, which suggests that stress-related posts often contain concrete and vivid personal descriptions.
+On the negative side, features such as `lex_liwc_Tone`, `lex_dal_avg_pleasantness`, `sentiment`, `lex_liwc_social`, and readability measures are associated with lower stress probability.
+Overall, this confirms that the baseline is using psychologically plausible and interpretable signals.
+
+For the Transformer, I use SHAP and Integrated Gradients.
+SHAP is perturbation-based: it explains the prediction by observing how the output changes when features or tokens are hidden or removed.
+Integrated Gradients is gradient-based: it explains the prediction by using model gradients along a path from a baseline input to the real input.
+The goal is not to claim that these methods reveal the true reasoning of the model in a perfect way.
+The goal is to inspect whether the model focuses on semantically meaningful tokens.
+For the Transformer, I need more advanced XAI methods.
+This is where I show the `shap.Explainer(...)` line, because it is the key step where I build a token-level explanation framework for DistilBERT.
+
+Then I show the local SHAP explanations.
+I usually present the stress explanation more than the non-stress one, because it is more informative in this project.
+The main point is that the model is pushed toward stress by semantically meaningful tokens such as:
+- panic
+- attacks
+- anxiety-related words
+- self-referential tokens
+
+Then I show the waterfall plot.
+This is a very useful compact visualization because it explains one prediction as a path from the base value to the final output.
+It shows that the prediction is not driven by one keyword only, but by the cumulative effect of multiple meaningful tokens.
+
+After SHAP, I move to Integrated Gradients.
+Here I explain the basic idea:
+SHAP is perturbation-based, while Integrated Gradients is gradient-based.
+So they are conceptually different.
+
+What matters is that they highlight similar tokens.
+That consistency is one of the strongest interpretive results in the whole project.
+It suggests that the Transformer is relying on psychologically plausible cues, not random artifacts.
+
+At the same time, I explicitly state the limit:
+Transformer explainability methods are useful for qualitative interpretation, but they are still approximate.
+They support interpretation, not proof. They do not provide proof of the model's true internal reasoning.
+
+End-of-notebook takeaway:
+
+The explainability notebook completes the project.
+It shows that:
+- the baseline is globally interpretable by design
+- the Transformer can still be inspected locally and semantically
+- SHAP and Integrated Gradients are qualitatively consistent
+
+So I end up with a balanced picture: interpretability on the baseline side, semantic inspection on the Transformer side.
+
+
+FINAL CONCLUSION
+
+At the end of the presentation, I would say:
+
+Overall, this project is method-driven rather than result-driven.
+I started from exploratory analysis, built an interpretable baseline, compared it fairly with a contextual Transformer, and then analyzed both through explainability tools.
+
+The final outcome is not that the Transformer wins across the board.
+The final outcome is more interesting:
+- the baseline remains strong, stable, and highly interpretable
+- the Transformer does not improve final classification metrics
+- the Transformer does improve ranking-based metrics, especially Average Precision
+- explainability confirms that both models rely on meaningful stress-related signals
+
+So the project shows that in this dataset a compact handcrafted representation already captures a large part of the signal, while contextual modeling adds value mainly in probabilistic ranking and semantic nuance.
+
+
+LIMITATIONS
+
+These are the limitations I should state clearly at the end:
+
+- The dataset is relatively small, so metric differences should be interpreted cautiously.
+- The task concerns stress-related language patterns, not clinical diagnosis.
+- The Transformer does not yield a decisive practical gain on final classification metrics.
+- SHAP and Integrated Gradients are informative but approximate.
+- Explainability is done on a limited sample because these methods are computationally expensive.
+
+
+SHORT CLOSING SENTENCE
+
+In summary, I tried to balance performance, interpretability, and methodological clarity, which I think is especially important in a sensitive NLP task such as stress detection.
